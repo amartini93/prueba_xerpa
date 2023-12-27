@@ -1,5 +1,3 @@
-# load_data.py
-import logging
 import os
 import pandas as pd
 from django.core.management.base import BaseCommand

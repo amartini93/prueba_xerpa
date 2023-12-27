@@ -8,6 +8,7 @@ from .views import (
     CommerceRetrieveUpdateDestroyView,
     KeywordListCreateView,
     KeywordRetrieveUpdateDestroyView,
+    EnrichmentView,
 )
 
 urlpatterns = [
@@ -22,4 +23,6 @@ urlpatterns = [
 
     path('keywords/', KeywordListCreateView.as_view(), name='keyword-list-create'),
     path('keywords/<uuid:pk>/', KeywordRetrieveUpdateDestroyView.as_view(), name='keyword-detail'),
+
+    path('enrich/', EnrichmentView.as_view(), name='enrichment'),
 ]
