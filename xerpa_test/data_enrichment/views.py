@@ -1,3 +1,4 @@
+import logging
 from rest_framework import generics
 from rest_framework import status
 from rest_framework.views import APIView
@@ -9,6 +10,8 @@ from .serializers import (
     CommerceSerializer,
     KeywordSerializer,
 )
+
+logger = logging.getLogger()
 
 # Transaction views
 class TransactionListCreateView(generics.ListCreateAPIView):
@@ -73,21 +76,41 @@ class EnrichmentView(APIView):
         return Response({'enriched_transactions': enriched_transactions}, status=status.HTTP_200_OK)
 
     def process_enrichment(self, transactions):
-        # Implement your logic to enrich transactions based on descriptions, keywords, etc.
-        # You can use data from the Category, Commerce, and Keyword models
+        enriched_transactions = []
 
-        enriched_transactions = []  # Update this list with the enriched transaction data
-
-        # Example: Enrichment logic (replace this with your actual logic)
         for transaction in transactions:
+            description = transaction['description']
+            first_word = description.split()[0].lower()
+
+            logging.info(f"Looking for description: {description}")
+            logging.info(f"Looking for keyword for the first word: {first_word}")
+
+            keyword = Keyword.objects.filter(keyword__iexact=first_word).first()
+
+            # Initialize the dictionary with null fields
+            enriched_data = {
+                'commerce': None,
+                'category': None,
+                'commerce_logo': None,
+            }
+
+            if keyword:
+                commerce = keyword.merchant
+                category = commerce.category if commerce else None
+
+                # Update the dictionary only if information is found
+                enriched_data.update({
+                    'commerce': commerce.merchant_name if commerce else None,
+                    'category': category.name if category else None,
+                    'commerce_logo': commerce.merchant_logo if commerce else None,
+                })
+
             enriched_transaction = {
                 'id': transaction['id'],
-                'description': transaction['description'],
-                'enriched_data': {
-                    'commerce': 'Enriched Commerce Name',
-                    'category': 'Enriched Category Name',
-                }
+                'description': description,
+                'enriched_data': enriched_data,
             }
+
             enriched_transactions.append(enriched_transaction)
 
         return enriched_transactions

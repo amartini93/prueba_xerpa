@@ -56,16 +56,20 @@ class Command(BaseCommand):
                 defaults={
                     'merchant_name': row['merchant_name'],
                     'merchant_logo': row['merchant_logo'],
-                    'category_id': row['category_id'] if not pd.isna(row['category_id']) else None,
                 }
             )
+
+            # Retrieve the Category instance and assign it
+            if not pd.isna(row['category_id']):
+                category_instance, _ = Category.objects.get_or_create(id=row['category_id'])
+                commerce.category = category_instance
 
             if not created:
                 # If the object already exists, update its attributes
                 commerce.merchant_name = row['merchant_name']
                 commerce.merchant_logo = row['merchant_logo']
-                commerce.category_id = row['category_id'] if not pd.isna(row['category_id']) else None
-                commerce.save()
+
+            commerce.save()
 
         # Load data for Keywords entity
         for _, row in df_keywords.iterrows():
@@ -73,8 +77,18 @@ class Command(BaseCommand):
                 id=row['id'],
                 defaults={
                     'keyword': row['keyword'],
-                    'merchant_id': row['merchant_id'],
                 }
             )
+
+            # Retrieve the Commerce instance and assign it
+            if not pd.isna(row['merchant_id']):
+                commerce_instance, _ = Commerce.objects.get_or_create(id=row['merchant_id'])
+                keyword.merchant = commerce_instance  # Assuming merchant is the ForeignKey field
+
+            if not created:
+                # If the object already exists, update its attributes
+                keyword.keyword = row['keyword']
+
+            keyword.save()
 
         self.stdout.write(self.style.SUCCESS('Data loaded successfully'))
