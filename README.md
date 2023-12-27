@@ -85,3 +85,8 @@
 }
 If the same query to the /enrich/ endpoint is called now, the PedidosYa transaction should be enriched. Repeat for McDonald's if required.
  ```
+
+ ###### Improving points
+ ```
+ Keyword detection in the Transaction description can be vastly improved. Check not only the first word, or check for abreviations and other ways to relate a Transaction with commerces, categories and keywords.
+ ```
