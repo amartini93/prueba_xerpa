@@ -73,13 +73,17 @@ class EnrichmentView(APIView):
         # Process transactions and perform enrichment (you'll need to implement this logic)
         enriched_transactions = self.process_enrichment(transactions)
 
-        return Response({'enriched_transactions': enriched_transactions}, status=status.HTTP_200_OK)
+        return Response(enriched_transactions, status=status.HTTP_200_OK)
 
     def process_enrichment(self, transactions):
         enriched_transactions = []
+        categorized_transactions = 0
+        identified_commerce_transactions = 0
 
         for transaction in transactions:
             description = transaction['description']
+            amount = transaction['amount']
+            date = transaction['date']
             first_word = description.split()[0].lower()
 
             logging.info(f"Looking for description: {description}")
@@ -98,19 +102,48 @@ class EnrichmentView(APIView):
                 commerce = keyword.merchant
                 category = commerce.category if commerce else None
 
-                # Update the dictionary only if information is found
+                if category:
+                    categorized_transactions += 1
+
+                if commerce:
+                    identified_commerce_transactions += 1
+
                 enriched_data.update({
                     'commerce': commerce.merchant_name if commerce else None,
                     'category': category.name if category else None,
                     'commerce_logo': commerce.merchant_logo if commerce else None,
                 })
 
+                # Check if the category type matches the expected type (case-insensitive)
+                expected_category_type = self.get_expected_category_type(amount).lower()
+                actual_category_type = category.type.lower() if category else None
+
+                if category and actual_category_type != expected_category_type:
+                    raise ValueError(f"The category type ({actual_category_type}) does not match the expected type for the transaction.")
+
             enriched_transaction = {
                 'id': transaction['id'],
                 'description': description,
+                'amount': amount,
+                'date': date,
                 'enriched_data': enriched_data,
             }
 
             enriched_transactions.append(enriched_transaction)
 
-        return enriched_transactions
+        # Calculate metrics
+        total_transactions = len(transactions)
+        categorization_rate = categorized_transactions / total_transactions if total_transactions > 0 else 0
+        commerce_identification_rate = identified_commerce_transactions / total_transactions if total_transactions > 0 else 0
+
+        enrichment_detail = {
+            'total_transactions': total_transactions,
+            'categorization_rate': categorization_rate,
+            'commerce_identification_rate': commerce_identification_rate,
+        }
+
+        return {'enriched_transactions': enriched_transactions, 'enrichment_detail': enrichment_detail}
+
+    def get_expected_category_type(self, amount):
+        # Determine the expected category type based on the sign of the amount
+        return 'expense' if amount < 0 else 'income'
